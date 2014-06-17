@@ -9,10 +9,8 @@ def getAppBaseInfo(apkpath):
     appBaseInfoDict = {'PkgName':None,'VersionCode':None,'VersionName':None,'AppLabel':None,'SdkVersion':None}
     try:
         aaptCmd = AAPT_PATH + ' d badging ' + apkpath
-        #print(aaptCmd)
         cmdOut = os.popen(aaptCmd)
         outList = cmdOut.readlines()
-        #print outList
         cmdOut.close()
 
         for line in outList:
@@ -206,7 +204,7 @@ def checkCert(cInfo):
 def checkRules(apkName):
     #print(apkName)
     pattern=r'^[A-Z][A-Za-z0-9]+_\d*\.\d*\.\d*\.\d*-([A-Za-z][\S]+|[A-Za-z][\S]+-PAL\d*\.\d*)\.apk'
-    if not checkPattern(pattern, apkName):
+    if not checkPattern(pattern, os.path.basename(apkName)):
         return False
 
     bInfo = getAppBaseInfo(apkName)

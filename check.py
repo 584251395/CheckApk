@@ -7,7 +7,7 @@ def printInfo(filePath):
     ext = os.path.splitext(filePath)[1]
     if ext.lower() == '.apk':
         print(filePath)
-        if apkInfo.checkRules(os.path.basename(filePath)):
+        if apkInfo.checkRules(filePath):
             print("SUCCEED!!!")
         else:
             print('FAILED please check naming rules')
@@ -22,13 +22,11 @@ def scan(startdir):
         printInfo(startdir)
         return
 
-    os.chdir(startdir)
-    for obj in os.listdir(os.curdir):
-        cwd = os.getcwd() + os.sep + obj
-        printInfo(cwd)
-        if os.path.isdir(obj):
-            scan(obj)
-            os.chdir(os.pardir)
+    for path, dirs, files in os.walk(startdir):
+        for f in files:
+            pf = path + os.sep + f
+            if not os.path.isdir(pf):
+                printInfo(pf)
 
 
 def main(argv):
