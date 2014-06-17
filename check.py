@@ -32,6 +32,7 @@ def scan(startdir):
 
 
 def main(argv):
+    apkInfo.AAPT_PATH = os.getcwd() + os.sep + 'aapt'
     if argv[1] == '-diff':
         apkInfo.diff(argv[2], argv[3])
         return

@@ -3,14 +3,12 @@ import shutil
 import string
 import re
 
+AAPT_PATH = 'aapt'
+
 def getAppBaseInfo(apkpath):
     appBaseInfoDict = {'PkgName':None,'VersionCode':None,'VersionName':None,'AppLabel':None,'SdkVersion':None}
-    hPath = '''"aapt.exe"'''
-    #print(hPath)
-    cPath = '''"aapt.exe"'''
-    #print(cPath)
     try:
-        aaptCmd = cPath + ' d badging ' + apkpath
+        aaptCmd = AAPT_PATH + ' d badging ' + apkpath
         #print(aaptCmd)
         cmdOut = os.popen(aaptCmd)
         outList = cmdOut.readlines()
@@ -55,7 +53,7 @@ def getCertInfo(apkpath):
     apkCert = {'MD5':None}
     javaPath = '''"'''
     try:
-        certPath = javaPath + '''jar.exe"''' + " tf "  + '' + apkpath
+        certPath = javaPath + '''jar"''' + " tf "  + '' + apkpath
         #print(certPath)
         cmdOut = os.popen(certPath)
         outList = cmdOut.readlines()
@@ -64,10 +62,10 @@ def getCertInfo(apkpath):
         for line in outList:
             #print line
             if line.find('.RSA') != -1:
-                extract = javaPath + '''jar.exe"''' + " xf "  + apkpath + ' ' + line
+                extract = javaPath + '''jar"''' + " xf "  + apkpath + ' ' + line
                 #print extract
                 os.popen(extract)
-                keytoolCmd = javaPath + '''keytool.exe"''' + " -printcert -file " + line
+                keytoolCmd = javaPath + '''keytool"''' + " -printcert -file " + line
                 certInfo = os.popen(keytoolCmd).readlines()
                 #print certInfo
                 for md5 in certInfo:
