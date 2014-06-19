@@ -200,7 +200,6 @@ def checkCert(cInfo):
     return None
 
 
-
 def checkRules(apkName):
     #print(apkName)
     pattern=r'^[A-Z][A-Za-z0-9]+_\d*\.\d*\.\d*\.\d*-([A-Za-z][\S]+|[A-Za-z][\S]+-PAL\d*\.\d*)\.apk'
@@ -232,21 +231,76 @@ def checkRules(apkName):
     return True
 
 
+def getPackagesDict(fileOrDir):
+    lpd = []
+    if not os.path.isdir(fileOrDir):
+        pd = {'package':None, 'appName':None, 'filePath':None, 'baseInfo':None}
+        if os.path.splitext(fileOrDir)[1].lower() != '.apk':
+            return lpd
+        bInfo = getAppBaseInfo(fileOrDir)
+        pd['baseInfo'] = bInfo
+        pd['package'] = bInfo['PkgName']
+        f = os.path.splitext(fileOrDir)[0]
+        index = f.find('_')
+        if index == -1:
+            index = f.find('.')
+        pd['appName'] = f[:index]
+        pd['filePath'] = fileOrDir
+        lpd.append(pd)
 
-def diff(apk1, apk2):
-    if os.path.splitext(apk1)[1].lower() != '.apk' or os.path.splitext(apk2)[1].lower() != '.apk':
-        print('Not apk files')
+    for path, dirs, files in os.walk(fileOrDir):
+        for f in files:
+            pf = path + os.sep + f
+            pd = {'package':None, 'appName':None, 'filePath':None, 'baseInfo':None}
+
+            if os.path.splitext(f)[1].lower() != '.apk':
+                continue
+            bInfo = getAppBaseInfo(pf)
+            pd['baseInfo'] = bInfo
+            pd['package'] = bInfo['PkgName']
+            index = f.find('_')
+            if index == -1:
+                index = f.find('.')
+            pd['appName'] = f[:index]
+            pd['filePath'] = pf
+            lpd.append(pd)
+    return lpd
+
+
+def diff(fileOrDir1, fileOrDir2):
+    print('Please waiting...\n')
+
+    lpd2 = getPackagesDict(fileOrDir2)
+    lpd1 = getPackagesDict(fileOrDir1)
+
+    if lpd2 == None or lpd1 == None:
         return
+    for pd2 in lpd2:
+        for pd1 in lpd1:
+            if pd1['package'] == pd2['package']:
+                print('file1: ' + pd1['filePath'])
+                print('file2: ' + pd2['filePath'])
 
-    bInfo1 = getAppBaseInfo(apk1)
-    #print(bInfo1)
-    vInfo1 = getVersionDict(bInfo1)
-    cInfo1 = getCertInfo(apk1)
-    #print cInfo1
+                bInfo1 = pd1['baseInfo']
+                vInfo1 = getVersionDict(bInfo1)
+                cInfo1 = getCertInfo(pd2['filePath'])
+                info1 = {'bInfo':bInfo1, 'vInfo':vInfo1, 'cInfo':cInfo1}
 
-    bInfo2 = getAppBaseInfo(apk2)
-    vInfo2 = getVersionDict(bInfo2)
-    cInfo2 = getCertInfo(apk2)
+                bInfo2 = pd2['baseInfo']
+                vInfo2 = getVersionDict(bInfo2)
+                cInfo2 = getCertInfo(pd2['filePath'])
+                info2 = {'bInfo':bInfo2, 'vInfo':vInfo2, 'cInfo':cInfo2}
+                diffFile(pd1['filePath'], pd2['filePath'], info1, info2)
+
+
+def diffFile(apk1, apk2, info1, info2):
+    bInfo1 = info1['bInfo']
+    vInfo1 = info1['vInfo']
+    cInfo1 = info1['cInfo']
+
+    bInfo2 = info2['bInfo']
+    vInfo2 = info2['vInfo']
+    cInfo2 = info2['cInfo']
 
     result = True
 
@@ -259,7 +313,7 @@ def diff(apk1, apk2):
         print('WARNING: Old apk ' + apk1 + ' is not accordance with ' + bInfo1['VersionName'])
         #pass
         #return
-    #print(bInfo2)
+
     b2 = isAccord(apk2, bInfo2['VersionName'])
     if not b2:
         print('FAILED: new apk ' + apk2 + ' is not accordance with ' + bInfo2['VersionName'])
@@ -274,11 +328,20 @@ def diff(apk1, apk2):
         print('Package Name: succeed\n')
 
     print('VersionCode: ' + bInfo1['VersionCode'] + ' --> ' + bInfo2['VersionCode'])
-    if not string.atoi(bInfo1['VersionCode']) < string.atoi(bInfo2['VersionCode']):
-        result = False
+    if bInfo1['VersionCode'] == '' and bInfo2['VersionCode'] == '':
+        result= False
+        print('VersionCode: failed\n')
+    elif bInfo1['VersionCode'] == '' and bInfo2['VersionCode'] != '':
+        print('VersionCode: succeed\n')
+    elif bInfo1['VersionCode'] != '' and bInfo2['VersionCode'] == '':
+        result= False
         print('VersionCode: failed\n')
     else:
-        print('VersionCode: succeed\n')
+        if not string.atoi(bInfo1['VersionCode']) < string.atoi(bInfo2['VersionCode']):
+            result = False
+            print('VersionCode: failed\n')
+        else:
+            print('VersionCode: succeed\n')
 
     key1 = checkCert(cInfo1)
     key2 = checkCert(cInfo2)
@@ -314,7 +377,7 @@ def diff(apk1, apk2):
             result = False
             print(' branch number: failed')
     elif vInfo1['branch'] == vInfo2['branch']:
-        if vInfo1(['numOfMaster']) <= vInfo2(['numOfMaster']) and vInfo1(['numOfOther']) <= vInfo2(['numOfOther']):
+        if string.atoi(vInfo1['numOfMaster']) <= string.atoi(vInfo2['numOfMaster']) and string.atoi(vInfo1['numOfOther']) <= string.atoi(vInfo2['numOfOther']):
             print(' branch number: succeed')
         else:
             result = False
@@ -323,9 +386,9 @@ def diff(apk1, apk2):
         result = False
         print(' branch number: failed')
     if result:
-        print('\nSUCCEED: ' + apk1 + ' Can update to ' + apk2)
+        print('\nSUCCEED: ' + apk1 + ' Can update to ' + apk2 + '\n')
     else:
-        print('\nFAILED: ' + apk1 + ' Can not update to ' + apk2)
+        print('\nFAILED: ' + apk1 + ' Can not update to ' + apk2 + '\n')
 
 
 if __name__ == "__main__":
